@@ -1,0 +1,19 @@
+# Virtual environment
+.venv/
+venv/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+.pytest_cache/
+
+# OS / editor
+.vscode/
+.idea/
+Thumbs.db
+.DS_Store
+
+# Agent runtime artifacts
+*.log

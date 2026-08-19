@@ -1,0 +1,14 @@
+{
+  "ollama": {
+    "host": "http://127.0.0.1:11434",
+    "model": "REPLACE_WITH_YOUR_MODEL"
+  },
+  "workspace": "./workspace",
+  "agent": {
+    "max_steps": 12
+  },
+  "terminal": {
+    "timeout_seconds": 30,
+    "allowlist": ["python", "python3", "pytest", "git", "pip"]
+  }
+}
