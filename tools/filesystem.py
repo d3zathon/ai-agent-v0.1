@@ -14,7 +14,6 @@ to the LLM as a normal tool result.
 
 from __future__ import annotations
 
-import os
 from pathlib import Path
 from typing import Any, Dict, List
 
@@ -117,6 +116,35 @@ def read_file(workspace: str | Path, path: str) -> Dict[str, Any]:
     return {"success": True, "path": path, "content": content}
 
 
+def _new_source_file_warning(target: Path, existed_before: bool) -> str | None:
+    """
+    Return a steering warning when creating a new Python source file in a
+    directory that already contains tests. This does not block the write;
+    it prompts the model to verify that tests import/execute the new file.
+    """
+    if existed_before or target.suffix.lower() != ".py":
+        return None
+
+    try:
+        sibling_tests = [
+            entry.name
+            for entry in target.parent.iterdir()
+            if entry.is_file() and entry.name.startswith("test_") and entry.suffix.lower() == ".py"
+        ]
+    except OSError:
+        return None
+
+    if not sibling_tests:
+        return None
+
+    return (
+        f"Warning: created new source file {target.name} in a directory with "
+        f"existing tests ({', '.join(sorted(sibling_tests))}). Verify that "
+        "those tests actually import or execute this file; otherwise your "
+        "change may not affect the tested implementation."
+    )
+
+
 def write_file(workspace: str | Path, path: str, content: str) -> Dict[str, Any]:
     """Create or overwrite a text file inside the workspace."""
     try:
@@ -134,12 +162,19 @@ def write_file(workspace: str | Path, path: str, content: str) -> Dict[str, Any]
             "error": f"Refusing to write {len(encoded)} bytes (> {MAX_FILE_BYTES} limit): {path}",
         }
 
+    existed_before = target.exists()
     target.parent.mkdir(parents=True, exist_ok=True)
     target.write_text(content, encoding="utf-8")
 
-    return {
+    result: Dict[str, Any] = {
         "success": True,
         "path": path,
         "bytes_written": len(encoded),
         "message": f"Wrote {len(encoded)} bytes to {path}",
     }
+
+    warning = _new_source_file_warning(target, existed_before)
+    if warning:
+        result["warning"] = warning
+
+    return result
