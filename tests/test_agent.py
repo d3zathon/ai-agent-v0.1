@@ -56,6 +56,42 @@ def test_list_files(workspace):
     assert "sub" in names
 
 
+def test_new_source_file_warns_when_sibling_tests_exist(workspace):
+    package = workspace / "demo_calculator"
+    package.mkdir()
+    (package / "test_calculator.py").write_text(
+        "from calculator import add\n\ndef test_add():\n    assert add(1, 2) == 3\n",
+        encoding="utf-8",
+    )
+
+    result = filesystem.write_file(
+        workspace,
+        "demo_calculator/demo_calculator.py",
+        "def add(a, b):\n    return 0\n",
+    )
+
+    assert result["success"] is True
+    assert "warning" in result
+    assert "existing tests" in result["warning"]
+    assert "tested implementation" in result["warning"]
+
+
+def test_overwriting_existing_source_does_not_warn(workspace):
+    package = workspace / "demo_calculator"
+    package.mkdir()
+    (package / "test_calculator.py").write_text("", encoding="utf-8")
+    (package / "calculator.py").write_text("def add(a, b):\n    return a + b\n", encoding="utf-8")
+
+    result = filesystem.write_file(
+        workspace,
+        "demo_calculator/calculator.py",
+        "def add(a, b):\n    return a - b\n",
+    )
+
+    assert result["success"] is True
+    assert "warning" not in result
+
+
 @pytest.mark.parametrize(
     "bad_path",
     [
